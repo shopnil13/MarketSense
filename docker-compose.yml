@@ -1,0 +1,61 @@
+# C7/C8: fixed indentation + no version: field (obsolete in Compose v2)
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: marketsense
+      POSTGRES_PASSWORD: marketsense
+      POSTGRES_DB: marketsense
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U marketsense"]
+      interval: 5s
+      retries: 10
+
+  hitl-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    command: uvicorn agents.executive.hitl_api:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  scout-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile.agents
+    command: python agents/scout/agent.py
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  analyst-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile.agents
+    command: python agents/analyst/agent.py
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  executive-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile.agents
+    command: python agents/executive/agent.py
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

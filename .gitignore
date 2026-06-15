@@ -1,0 +1,14 @@
+.env
+agent_config.yaml
+MarketSense-AI-Tailored-Plan.md
+checklist.md
+build_log.md
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+dist/
+build/
+*.egg-info/
+.uv/
