@@ -92,15 +92,13 @@ async def action_detail(action_id: str):
     buttons = ""
     if action.status == "pending":
         buttons = f"""
-        <form method="post" action="/actions/{action_id}/review" style="display:inline">
-          <input type="hidden" name="decision" value="approved">
+        <form method="post" action="/actions/{action_id}/review?decision=approved" style="display:inline">
           <button type="submit" style="background:#10b981;color:#fff;border:none;padding:.5rem 1.5rem;border-radius:.375rem;cursor:pointer;font-size:1rem;">
             ✓ Approve
           </button>
         </form>
         &nbsp;
-        <form method="post" action="/actions/{action_id}/review" style="display:inline">
-          <input type="hidden" name="decision" value="rejected">
+        <form method="post" action="/actions/{action_id}/review?decision=rejected" style="display:inline">
           <button type="submit" style="background:#ef4444;color:#fff;border:none;padding:.5rem 1.5rem;border-radius:.375rem;cursor:pointer;font-size:1rem;">
             ✗ Reject
           </button>

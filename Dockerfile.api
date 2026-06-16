@@ -2,12 +2,12 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-RUN pip install uv --quiet
-
-COPY pyproject.toml .
-RUN uv pip install --system -e .
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
+
+ENV PYTHONPATH=/app
 
 EXPOSE 8000
 CMD ["uvicorn", "agents.executive.hitl_api:app", "--host", "0.0.0.0", "--port", "8000"]

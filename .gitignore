@@ -12,3 +12,6 @@ dist/
 build/
 *.egg-info/
 .uv/
+# Agent log files (local dev only)
+*_stdout.txt
+*_stderr.txt

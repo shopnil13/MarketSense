@@ -27,9 +27,13 @@ async def load_analysis_report(report_id: str) -> str:
         if not report:
             return json.dumps({"error": f"No report found for id={report_id}"})
 
+        product = await db.get(Product, report.product_id)
+        product_name = product.name if product else report.sku
+
         return json.dumps({
             "report_id": str(report.id),
             "sku": report.sku,
+            "product_name": product_name,
             "recommended_action": report.recommended_action,
             "proposed_price": float(report.proposed_price or 0),
             "expected_margin": float(report.expected_margin or 0),

@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     featherless_model: str = "Qwen/Qwen2.5-7B-Instruct"
 
     # Database
-    database_url: str = "postgresql+asyncpg://marketsense:marketsense@localhost:5432/marketsense"
+    database_url: str = "postgresql+asyncpg://marketsense:marketsense@localhost:5433/marketsense"
 
     # Notifications
     slack_webhook_url: str = ""

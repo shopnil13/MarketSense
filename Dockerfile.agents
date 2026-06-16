@@ -2,13 +2,12 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install uv
-RUN pip install uv --quiet
-
-COPY pyproject.toml .
-RUN uv pip install --system -e .
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# Start command is provided per-service in docker-compose / Railway
-CMD ["python", "-m", "agents.scout.agent"]
+ENV PYTHONPATH=/app
+
+# Start command is overridden per-service in docker-compose / Railway
+CMD ["python", "agents/scout/agent.py"]
