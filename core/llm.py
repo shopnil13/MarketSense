@@ -2,7 +2,7 @@ import os
 from openai import AsyncOpenAI
 from langchain_openai import ChatOpenAI
 
-_featherless_client: AsyncOpenAI | None = None
+_aiml_client: AsyncOpenAI | None = None
 
 
 def get_aiml_llm(temperature: float = 0) -> ChatOpenAI:
@@ -15,23 +15,24 @@ def get_aiml_llm(temperature: float = 0) -> ChatOpenAI:
     )
 
 
-def _get_featherless_client() -> AsyncOpenAI:
-    global _featherless_client
-    if _featherless_client is None:
-        _featherless_client = AsyncOpenAI(
-            base_url="https://api.featherless.ai/v1",
-            api_key=os.environ.get("FEATHERLESS_API_KEY", "placeholder"),
+def _get_aiml_client() -> AsyncOpenAI:
+    global _aiml_client
+    if _aiml_client is None:
+        _aiml_client = AsyncOpenAI(
+            base_url="https://api.aimlapi.com/v1",
+            api_key=os.environ.get("AIML_API_KEY", "placeholder"),
         )
-    return _featherless_client
+    return _aiml_client
 
 
-async def featherless_reason(prompt: str) -> str:
-    """Direct (non-agentic) open-model call via Featherless for strategic narrative.
+async def aiml_reason(prompt: str) -> str:
+    """Direct (non-agentic) AI/ML API call for the Analyst's strategic narrative.
 
-    No tool-calling — model choice is low-risk. Keeps orchestration on AI/ML API.
+    No tool-calling — a bounded, single-shot reasoning call. Uses the same AI/ML
+    API that powers the agent brains, keeping the whole stack on one provider.
     """
-    model = os.environ.get("FEATHERLESS_MODEL", "Qwen/Qwen2.5-7B-Instruct")
-    resp = await _get_featherless_client().chat.completions.create(
+    model = os.environ.get("AIML_MODEL", "openai/gpt-4o-mini")
+    resp = await _get_aiml_client().chat.completions.create(
         model=model,
         messages=[
             {

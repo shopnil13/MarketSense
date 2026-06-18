@@ -35,7 +35,7 @@ Scout ──alerts──► Analyst ◄──sentiment──► Scout
 | Agent | Role | LLM |
 |---|---|---|
 | **Scout** | Scans competitor prices; detects drops ≥5%; retrieves social sentiment | AI/ML API (`gpt-4o-mini`) |
-| **Analyst** | Calculates match/undercut/hold options against margin floor; generates strategic narrative | AI/ML API + Featherless (`Qwen/Qwen2.5-7B-Instruct`) |
+| **Analyst** | Calculates match/undercut/hold options against margin floor; generates strategic narrative | AI/ML API (`gpt-4o-mini`) |
 | **Executive** | Drafts action brief; queues for human approval via HiTL dashboard | AI/ML API (`gpt-4o-mini`) |
 
 Agents communicate via Band chatrooms. All structured data (reports, actions) live in a shared Postgres database — Band messages carry only IDs and human-readable summaries.
@@ -82,8 +82,7 @@ Agents communicate via Band chatrooms. All structured data (reports, actions) li
 
 - **Band SDK** (`band-sdk 1.0.0`) — multi-agent coordination via Band chatrooms
 - **LangGraph** + **LangChain OpenAI** — agent reasoning loops with tool-calling
-- **AI/ML API** — powers all 3 agent brains (reliable tool-calling, OpenAI-compatible)
-- **Featherless AI** — bounded narrative generation in Analyst (Qwen2.5-7B-Instruct)
+- **AI/ML API** — powers all 3 agent brains (reliable tool-calling, OpenAI-compatible) and the Analyst's bounded narrative call
 - **FastAPI** — HiTL approval dashboard (the submission Application URL)
 - **PostgreSQL** + **SQLAlchemy (async)** + **Alembic** — shared market state & migrations
 - **Docker Compose** — local orchestration (postgres + 3 agents + HiTL API)
@@ -111,7 +110,7 @@ pip install -r requirements.txt
 
 # 2. Configure environment
 cp .env.example .env
-# Edit .env — fill in AIML_API_KEY, FEATHERLESS_API_KEY, DATABASE_URL
+# Edit .env — fill in AIML_API_KEY, DATABASE_URL
 # Edit agent_config.yaml — fill in Band agent UUIDs and API keys
 
 # 3. Start database
@@ -140,7 +139,7 @@ In Band, @mention the Scout Agent:
 @Scout Agent please scan competitor prices for PUMA-SNK-001
 ```
 
-Scout will detect the Daraz price drop (23.9% below list), create an alert room, recruit the Analyst, the Analyst will request sentiment from Scout, generate a strategic narrative via Featherless, save the report, and recruit the Executive — which will queue a `price_match` action for human approval on the dashboard.
+Scout will detect the Daraz price drop (23.9% below list), create an alert room, recruit the Analyst, the Analyst will request sentiment from Scout, generate a strategic narrative, save the report, and recruit the Executive — which will queue a `price_match` action for human approval on the dashboard.
 
 ---
 
@@ -148,10 +147,8 @@ Scout will detect the Daraz price drop (23.9% below list), create an alert room,
 
 | Variable | Required | Description |
 |---|---|---|
-| `AIML_API_KEY` | ✅ | AI/ML API key (all 3 agent brains) |
+| `AIML_API_KEY` | ✅ | AI/ML API key (all 3 agent brains + Analyst narrative) |
 | `AIML_MODEL` | | Model ID (default: `openai/gpt-4o-mini`) |
-| `FEATHERLESS_API_KEY` | ✅ | Featherless AI key (Analyst narrative) |
-| `FEATHERLESS_MODEL` | | Featherless model (default: `Qwen/Qwen2.5-7B-Instruct`) |
 | `DATABASE_URL` | ✅ | AsyncPG connection string |
 | `SLACK_WEBHOOK_URL` | | Slack webhook for action notifications |
 | `HITL_API_URL` | | HiTL dashboard base URL (default: `http://localhost:8000`) |
@@ -172,7 +169,7 @@ MarketSense/
 │   │   └── scraper.py        # Mock-first price data (httpx+BS4 live fallback)
 │   ├── analyst/
 │   │   ├── agent.py          # Analyst agent
-│   │   └── tools.py          # Pricing strategy, Featherless narrative, report persistence
+│   │   └── tools.py          # Pricing strategy, strategic narrative, report persistence
 │   └── executive/
 │       ├── agent.py          # Executive agent
 │       ├── tools.py          # load_analysis_report, draft_action_content, queue_for_human_approval
@@ -182,7 +179,7 @@ MarketSense/
 │   ├── database.py           # Async SQLAlchemy engine
 │   ├── models.py             # 6 ORM tables
 │   ├── schemas.py            # Inter-agent Pydantic contracts
-│   └── llm.py                # AI/ML API + Featherless client helpers
+│   └── llm.py                # AI/ML API client helpers (agent brain + narrative)
 ├── scripts/
 │   ├── seed_data.py          # Seeds 3 products with competitor data
 │   └── trigger_demo.py       # Automated demo trigger (backup)
@@ -210,7 +207,7 @@ MarketSense/
 
 **Why pass `report_id` through Band, not JSON?** LLM-formatted JSON in chat is unreliable for structured data. The Analyst saves the full analysis to Postgres and passes only the UUID via Band; the Executive loads from the database. This guarantees data integrity regardless of how the LLM formats its message.
 
-**Why Featherless only for the narrative?** Featherless models don't have reliable tool-calling. The `generate_strategic_narrative` call is a bounded text-only task — exactly the right fit. All tool-calling stays on AI/ML API (GPT-4o-mini).
+**Why split agent reasoning from the narrative call?** The three agents run as full LangGraph reasoning loops with tool-calling. The `generate_strategic_narrative` step is deliberately *not* an agentic loop — it's a single bounded, text-only completion. Keeping it separate makes the narrative deterministic and cheap, and isolates it from the tool-calling control flow. Both run on AI/ML API (GPT-4o-mini).
 
 **Why mock-first scraping?** Competitor sites rate-limit aggressively and the demo environment is unpredictable. Mock data ensures deterministic demo behaviour; the live scraper (httpx + BeautifulSoup + tenacity retry) is a labeled best-effort upgrade path.
 

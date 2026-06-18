@@ -66,7 +66,7 @@ async def draft_action_content(
         recommended_action: "match" | "undercut" | "hold".
         proposed_price: Recommended new price.
         expected_margin: Expected margin % at proposed_price.
-        strategic_narrative: Featherless-generated strategic context.
+        strategic_narrative: LLM-generated strategic context.
     """
     action_map = {
         "match": "Price Match",

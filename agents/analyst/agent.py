@@ -44,9 +44,9 @@ Then **stop and end your turn**. Scout will reply in this room, which will re-in
 Call `calculate_strategy_options(sku, our_price, cost_price, competitor_price, sentiment_score)`
 using the competitor price from the Scout alert and the sentiment score from Scout's reply.
 
-### Step 4 — Generate strategic narrative (Featherless open-source model)
+### Step 4 — Generate strategic narrative
 Call `generate_strategic_narrative(context_json)` with a JSON string summarising the options,
-prices, margin, and sentiment. This uses an open-source model — wait for the result.
+prices, margin, and sentiment. This is a bounded reasoning call — wait for the result.
 
 ### Step 5 — Persist the report
 Call `save_analysis_report(...)` with all the analysis data. Note the returned `report_id`.

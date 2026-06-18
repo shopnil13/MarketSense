@@ -1,4 +1,4 @@
-"""Analyst Agent tools — pricing data, strategy calculation, Featherless narrative, report persistence."""
+"""Analyst Agent tools — pricing data, strategy calculation, strategic narrative, report persistence."""
 import json
 import uuid
 from decimal import Decimal
@@ -10,7 +10,7 @@ from sqlalchemy import select
 from core.database import AsyncSessionFactory
 from core.models import Product, AnalysisReport, SentimentRecord
 from core.config import settings
-from core.llm import featherless_reason
+from core.llm import aiml_reason
 
 
 @tool
@@ -115,11 +115,11 @@ async def calculate_strategy_options(
 
 @tool
 async def generate_strategic_narrative(context_json: str) -> str:
-    """Use the open-source model (Featherless) to generate a 3-4 sentence strategic narrative.
+    """Generate a 3-4 sentence strategic narrative via a bounded AI/ML API call.
 
     Takes a JSON string with pricing options and market context; returns a concise
-    recommendation the Executive can act on. This is a bounded reasoning call —
-    no tool-calling required from Featherless (§3.2 of implementation plan).
+    recommendation the Executive can act on. This is a bounded, single-shot reasoning
+    call — no tool-calling.
 
     Args:
         context_json: JSON string with strategy options, margin data, and sentiment.
@@ -134,9 +134,9 @@ async def generate_strategic_narrative(context_json: str) -> str:
         f"Be concise and decisive. Use plain English — no bullet points."
     )
     try:
-        narrative = await featherless_reason(prompt)
+        narrative = await aiml_reason(prompt)
     except Exception as e:
-        logger.warning(f"Featherless call failed ({e}), using fallback narrative.")
+        logger.warning(f"Narrative call failed ({e}), using fallback narrative.")
         narrative = "Market data indicates a competitive price drop. Recommend matching the competitor price to defend volume while maintaining margin above the floor. Monitor sentiment for further brand impact."
 
     return json.dumps({"narrative": narrative})
@@ -165,7 +165,7 @@ async def save_analysis_report(
         recommended_action: "match" | "undercut" | "hold".
         proposed_price: Recommended price.
         expected_margin: Expected margin percentage at proposed_price.
-        strategic_narrative: Featherless-generated strategic narrative text.
+        strategic_narrative: LLM-generated strategic narrative text.
         llm_recommendation: Full LLM reasoning / recommendation text.
     """
     async with AsyncSessionFactory() as db:

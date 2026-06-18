@@ -8,13 +8,9 @@ class Settings(BaseSettings):
     thenvoi_rest_url: str = "https://app.band.ai/"
     thenvoi_ws_url: str = "wss://app.band.ai/api/v1/socket/websocket"
 
-    # AI/ML API
+    # AI/ML API — powers all 3 agent brains AND the Analyst's bounded narrative call
     aiml_api_key: str = ""
     aiml_model: str = "openai/gpt-4o-mini"
-
-    # Featherless
-    featherless_api_key: str = ""
-    featherless_model: str = "Qwen/Qwen2.5-7B-Instruct"
 
     # Database
     database_url: str = "postgresql+asyncpg://marketsense:marketsense@localhost:5433/marketsense"
