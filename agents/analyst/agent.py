@@ -14,6 +14,7 @@ from core.llm import get_aiml_llm  # C4: Analyst brain stays on AI/ML API
 from core.database import init_db
 from agents.analyst.tools import (
     get_product_pricing_data,
+    get_sentiment_for_sku,
     calculate_strategy_options,
     generate_strategic_narrative,
     save_analysis_report,
@@ -39,26 +40,34 @@ Receive price-drop alerts from scout, analyse (including one sentiment request t
 generate a strategic recommendation, and hand off a persisted report to executive for
 human-in-the-loop approval.
 
-## FIRST: read the room history and decide where you are
-- If scout has NOT yet given you a sentiment score in this room → you are at Step 1–2.
-- If scout HAS already replied with a sentiment score in this room → SKIP to Step 3.
-  Never request sentiment twice.
+## FIRST: read the room history and decide which phase you are in
+- Have you (analyst) ALREADY posted a "Sentiment request" message in this room?
+  - NO  → you are in PHASE A (do Step 1, then Step 2, then STOP).
+  - YES → you are in PHASE B (do Step 3 onward). You must NOT post another sentiment
+          request — you already asked. Get the value from the database instead.
 
-## Workflow (follow in order)
+## PHASE A — request sentiment (run this only if you have NOT asked yet)
 
 ### Step 1 — Load product data
 Call `get_product_pricing_data(sku)` to load our current price and cost from Postgres.
 
-### Step 2 — Request social sentiment from scout (do this ONCE)
-Post ONE message @mentioning "scout":
+### Step 2 — Ask scout for sentiment (EXACTLY ONE message, then STOP)
+Post ONE message @mentioning "scout" (mentions=["scout"]):
   "Sentiment request for <product_name> (<sku>). Please call get_social_sentiment(sku='<sku>', report_id='pending').
    Reply with the score and summary."
-Then **end your turn**. Scout will reply in this room, which re-invokes you.
-Do NOT @mention scout again after this. Do NOT invent sentiment values.
+After this single send_message call, you are DONE for this turn: produce a short final
+acknowledgement and make NO further tool calls. Scout will reply and re-invoke you (PHASE B).
+NEVER call send_message for a sentiment request more than once. NEVER invent sentiment values.
 
-### Step 3 — Calculate strategy options (only after scout's sentiment is in the history)
-Call `calculate_strategy_options(sku, our_price, cost_price, competitor_price, sentiment_score)`
-using the competitor price from scout's alert and the sentiment score from scout's reply.
+## PHASE B — analyse (run this once scout has replied / you have already asked)
+
+### Step 3 — Retrieve sentiment from the database, then calculate options
+First call `get_sentiment_for_sku(sku)` to read the score Scout recorded.
+- If it returns available=false, Scout hasn't recorded it yet: end your turn and wait
+  (do NOT re-ask scout) — you'll be re-invoked.
+- If available=true, use its `sentiment_score`, then call
+  `calculate_strategy_options(sku, our_price, cost_price, competitor_price, sentiment_score)`
+  using the competitor price from scout's alert.
 
 ### Step 4 — Generate strategic narrative
 Call `generate_strategic_narrative(context_json)` with a JSON string summarising the options,
@@ -96,6 +105,7 @@ async def main():
         checkpointer=InMemorySaver(),
         additional_tools=[
             get_product_pricing_data,
+            get_sentiment_for_sku,
             calculate_strategy_options,
             generate_strategic_narrative,
             save_analysis_report,

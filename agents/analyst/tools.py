@@ -36,6 +36,46 @@ async def get_product_pricing_data(sku: str) -> str:
 
 
 @tool
+async def get_sentiment_for_sku(sku: str) -> str:
+    """Read the most recent social sentiment for a SKU from Postgres.
+
+    Scout records sentiment via its get_social_sentiment tool. After you have asked
+    Scout for sentiment (once) and Scout has replied, call THIS tool to retrieve the
+    value reliably from the shared database — do NOT parse it from the chat message,
+    and do NOT send Scout another request.
+
+    Args:
+        sku: Product SKU (e.g. "PUMA-SNK-001").
+
+    Returns:
+        JSON with sentiment_score, mention_volume, summary, and `available` flag.
+        If Scout hasn't recorded sentiment yet, `available` is false — end your turn
+        and wait to be re-invoked; do NOT re-ask Scout.
+    """
+    async with AsyncSessionFactory() as db:
+        record = (
+            await db.execute(
+                select(SentimentRecord)
+                .where(SentimentRecord.sku == sku)
+                .order_by(SentimentRecord.recorded_at.desc())
+                .limit(1)
+            )
+        ).scalar_one_or_none()
+
+    if not record:
+        return json.dumps({"sku": sku, "available": False,
+                           "note": "No sentiment recorded yet. End your turn and wait for Scout's reply."})
+
+    return json.dumps({
+        "sku": sku,
+        "available": True,
+        "sentiment_score": float(record.score),
+        "mention_volume": record.volume,
+        "summary": record.summary,
+    })
+
+
+@tool
 async def calculate_strategy_options(
     sku: str,
     our_price: float,
