@@ -76,7 +76,7 @@ async def scan_competitor_prices(sku: str, demo_mode: bool = True) -> str:
             today = datetime.date.today().isoformat()
             room_name = f"alert-{sku}-{p.competitor_name[:4].upper()}-{today}"
             recruitment_message = (
-                f"@Analyst Agent 🚨 Price alert: {product.name} ({sku})\n"
+                f"@analyst 🚨 Price alert: {product.name} ({sku})\n"
                 f"• {p.competitor_name} dropped to PKR {p.price:,.0f} ({drop_pct:.1%} below our PKR {our_price:,.0f})\n"
                 f"• Snapshot ID: {snap.id}\n"
                 f"Please analyse and determine our optimal response."
