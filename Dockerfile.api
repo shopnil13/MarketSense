@@ -10,4 +10,7 @@ COPY . .
 ENV PYTHONPATH=/app
 
 EXPOSE 8000
-CMD ["uvicorn", "agents.executive.hitl_api:app", "--host", "0.0.0.0", "--port", "8000"]
+# Shell form (not JSON-array) so $PORT is expanded by /bin/sh at runtime.
+# Railway injects PORT; falls back to 8000 locally. The app seeds + builds the
+# schema in its FastAPI startup event, so no pre-step is needed.
+CMD uvicorn agents.executive.hitl_api:app --host 0.0.0.0 --port ${PORT:-8000}

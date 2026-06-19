@@ -1,11 +1,11 @@
 [build]
 dockerfilePath = "Dockerfile.api"
 
-# The app's startup event builds the schema (init_db / create_all, idempotent) AND seeds
-# demo products in-process — so there's no separate seed step that could hang before
-# uvicorn binds. No Alembic on Railway (agents also create tables via init_db()).
+# No startCommand here on purpose: Railway runs the start command as raw argv (no shell),
+# so "$PORT" would NOT expand. Instead we rely on Dockerfile.api's shell-form CMD, which
+# /bin/sh expands ($PORT -> the port Railway injects). The app builds the schema + seeds
+# demo products in its FastAPI startup event, so no pre-step is needed.
 [deploy]
-startCommand = "uvicorn agents.executive.hitl_api:app --host 0.0.0.0 --port $PORT"
 healthcheckPath = "/health"
 healthcheckTimeout = 90
 restartPolicyType = "ON_FAILURE"
