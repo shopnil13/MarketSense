@@ -1,5 +1,6 @@
 import os
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -26,6 +27,14 @@ class Settings(BaseSettings):
     max_price_change_pct: float = 15.0
     price_drop_threshold_pct: float = 5.0
 
+    @field_validator("database_url", "aiml_api_key", "slack_webhook_url", "hitl_api_url",
+                     "thenvoi_rest_url", "thenvoi_ws_url", "aiml_model", mode="before")
+    @classmethod
+    def _strip_whitespace(cls, v):
+        # Cloud dashboards (e.g. Railway) often append a trailing newline when pasting env
+        # values. A stray "\n" in DATABASE_URL makes the db name "railway\n" -> connection fails.
+        return v.strip() if isinstance(v, str) else v
+
 
 settings = Settings()
 
@@ -41,7 +50,7 @@ def resolve_agent_credentials(role: str) -> tuple[str, str]:
     env_id = os.getenv(f"{role.upper()}_AGENT_ID")
     env_key = os.getenv(f"{role.upper()}_API_KEY")
     if env_id and env_key:
-        return env_id, env_key
+        return env_id.strip(), env_key.strip()
 
     from band.config.loader import load_agent_config
     return load_agent_config(role)
