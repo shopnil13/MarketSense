@@ -1,3 +1,5 @@
+import os
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -26,3 +28,20 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+
+def resolve_agent_credentials(role: str) -> tuple[str, str]:
+    """Return (agent_id, api_key) for a Band agent role.
+
+    Order of precedence:
+    1. Environment variables ``<ROLE>_AGENT_ID`` / ``<ROLE>_API_KEY`` (used in production
+       e.g. Railway, where agent_config.yaml is not present — it's gitignored).
+    2. ``agent_config.yaml`` via the Band SDK loader (used for local development).
+    """
+    env_id = os.getenv(f"{role.upper()}_AGENT_ID")
+    env_key = os.getenv(f"{role.upper()}_API_KEY")
+    if env_id and env_key:
+        return env_id, env_key
+
+    from band.config.loader import load_agent_config
+    return load_agent_config(role)

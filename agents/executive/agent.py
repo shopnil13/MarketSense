@@ -8,7 +8,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 
 from band import Agent
 from band.adapters.langgraph import LangGraphAdapter
-from band.config.loader import load_agent_config  # C3
+from core.config import resolve_agent_credentials  # env vars (prod) -> agent_config.yaml (local)
 
 from core.llm import get_aiml_llm
 from core.database import init_db
@@ -63,7 +63,7 @@ async def main():
 
     await init_db()
 
-    agent_id, api_key = load_agent_config("executive")
+    agent_id, api_key = resolve_agent_credentials("executive")
 
     adapter = LangGraphAdapter(
         llm=get_aiml_llm(temperature=0),
