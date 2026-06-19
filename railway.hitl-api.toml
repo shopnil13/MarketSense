@@ -1,9 +1,12 @@
 [build]
 dockerfilePath = "Dockerfile.api"
 
+# init_db() (create_all) builds the schema idempotently — no Alembic on Railway, since
+# the agents also create tables via init_db() and Alembic would crash on existing tables.
+# seed_data.py runs init_db() first, then seeds idempotently (skips existing SKUs).
 [deploy]
-startCommand = "python -m alembic upgrade head && uvicorn agents.executive.hitl_api:app --host 0.0.0.0 --port $PORT"
+startCommand = "python scripts/seed_data.py && uvicorn agents.executive.hitl_api:app --host 0.0.0.0 --port $PORT"
 healthcheckPath = "/actions"
-healthcheckTimeout = 60
+healthcheckTimeout = 90
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
