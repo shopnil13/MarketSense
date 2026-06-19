@@ -1,0 +1,7 @@
+[build]
+dockerfilePath = "Dockerfile.agents"
+
+[deploy]
+startCommand = "python agents/executive/agent.py"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5

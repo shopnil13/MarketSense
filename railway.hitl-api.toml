@@ -4,6 +4,6 @@ dockerfilePath = "Dockerfile.api"
 [deploy]
 startCommand = "python -m alembic upgrade head && uvicorn agents.executive.hitl_api:app --host 0.0.0.0 --port $PORT"
 healthcheckPath = "/actions"
-healthcheckTimeout = 30
+healthcheckTimeout = 60
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
