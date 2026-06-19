@@ -1,12 +1,12 @@
 [build]
 dockerfilePath = "Dockerfile.api"
 
-# init_db() (create_all) builds the schema idempotently — no Alembic on Railway, since
-# the agents also create tables via init_db() and Alembic would crash on existing tables.
-# seed_data.py runs init_db() first, then seeds idempotently (skips existing SKUs).
+# The app's startup event builds the schema (init_db / create_all, idempotent) AND seeds
+# demo products in-process — so there's no separate seed step that could hang before
+# uvicorn binds. No Alembic on Railway (agents also create tables via init_db()).
 [deploy]
-startCommand = "python scripts/seed_data.py && uvicorn agents.executive.hitl_api:app --host 0.0.0.0 --port $PORT"
-healthcheckPath = "/actions"
+startCommand = "uvicorn agents.executive.hitl_api:app --host 0.0.0.0 --port $PORT"
+healthcheckPath = "/health"
 healthcheckTimeout = 90
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3

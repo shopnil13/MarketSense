@@ -9,13 +9,27 @@ from sqlalchemy import select
 
 from core.database import AsyncSessionFactory, init_db
 from core.models import PendingAction, AnalysisReport
+from core.seed import seed_products
 
 app = FastAPI(title="MarketSense AI — HiTL Dashboard", version="0.1.0")
 
 
 @app.on_event("startup")
 async def startup():
+    # Idempotent: creates the schema and seeds demo products if missing.
+    # Done in-process (not a separate seed step) so deployment can't hang between steps.
     await init_db()
+    try:
+        await seed_products(create_tables=False)
+    except Exception as e:  # seeding must never block the server from coming up
+        import logging
+        logging.getLogger("uvicorn.error").warning(f"Seed skipped: {e}")
+
+
+@app.get("/health")
+async def health():
+    """Liveness probe — no DB dependency, returns 200 as soon as the server is up."""
+    return {"status": "ok"}
 
 
 # ── API ───────────────────────────────────────────────────────────────────────
