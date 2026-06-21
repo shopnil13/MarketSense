@@ -11,6 +11,7 @@ from core.database import AsyncSessionFactory
 from core.models import Product, AnalysisReport, SentimentRecord
 from core.config import settings
 from core.llm import aiml_reason
+from core.text import clean_text
 
 
 @tool
@@ -217,13 +218,13 @@ async def save_analysis_report(
         report = AnalysisReport(
             product_id=product.id,
             sku=sku,
-            trigger_event=_json.loads(trigger_event) if isinstance(trigger_event, str) else trigger_event,
-            price_comparison=_json.loads(price_comparison) if isinstance(price_comparison, str) else price_comparison,
+            trigger_event=clean_text(_json.loads(trigger_event) if isinstance(trigger_event, str) else trigger_event),
+            price_comparison=clean_text(_json.loads(price_comparison) if isinstance(price_comparison, str) else price_comparison),
             recommended_action=recommended_action,
             proposed_price=proposed_price,
             expected_margin=expected_margin,
-            strategic_narrative=strategic_narrative,
-            llm_recommendation=llm_recommendation,
+            strategic_narrative=clean_text(strategic_narrative),  # strip NUL bytes Postgres rejects
+            llm_recommendation=clean_text(llm_recommendation),
         )
         db.add(report)
         await db.commit()

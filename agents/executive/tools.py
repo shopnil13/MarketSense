@@ -10,6 +10,7 @@ from sqlalchemy import select
 from core.database import AsyncSessionFactory
 from core.models import AnalysisReport, PendingAction, Product
 from core.config import settings
+from core.text import clean_text
 
 
 @tool
@@ -119,14 +120,14 @@ async def queue_for_human_approval(
     """
     async with AsyncSessionFactory() as db:
         action = PendingAction(
-            report_id=report_id,
-            sku=sku,
-            action_type=action_type,
+            report_id=clean_text(report_id),
+            sku=clean_text(sku),
+            action_type=clean_text(action_type),
             action_payload={
                 "proposed_price": proposed_price,
                 "expected_margin": expected_margin,
             },
-            draft_content=draft_content,
+            draft_content=clean_text(draft_content),  # strip NUL bytes Postgres rejects
             status="pending",
         )
         db.add(action)
