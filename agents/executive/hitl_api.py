@@ -41,17 +41,21 @@ class ReviewRequest(BaseModel):
 
 @app.get("/", response_class=HTMLResponse)
 async def dashboard():
-    """Simple HTML dashboard for the demo — shows all pending actions."""
+    """HTML dashboard — full history of pricing actions (pending + decided)."""
     async with AsyncSessionFactory() as db:
         actions = (
             await db.execute(
-                select(PendingAction).order_by(PendingAction.created_at.desc()).limit(20)
+                select(PendingAction).order_by(PendingAction.created_at.desc()).limit(100)
             )
         ).scalars().all()
+
+    pending_count = sum(1 for a in actions if a.status == "pending")
 
     rows = ""
     for a in actions:
         status_colour = {"pending": "#f59e0b", "approved": "#10b981", "rejected": "#ef4444"}.get(a.status, "#6b7280")
+        reviewed = a.reviewed_at.strftime('%Y-%m-%d %H:%M') if a.reviewed_at else "—"
+        link_label = "Review →" if a.status == "pending" else "View →"
         rows += f"""
         <tr>
             <td><code>{a.id[:8]}…</code></td>
@@ -60,10 +64,8 @@ async def dashboard():
             <td>PKR {a.action_payload.get('proposed_price', 0):,.0f}</td>
             <td style="color:{status_colour};font-weight:bold">{a.status.upper()}</td>
             <td>{a.created_at.strftime('%Y-%m-%d %H:%M') if a.created_at else '—'}</td>
-            <td>
-                {"" if a.status != "pending" else
-                 f'<a href="/actions/{a.id}">Review →</a>'}
-            </td>
+            <td>{reviewed}</td>
+            <td><a href="/actions/{a.id}">{link_label}</a></td>
         </tr>"""
 
     return HTMLResponse(f"""<!DOCTYPE html>
@@ -73,6 +75,7 @@ async def dashboard():
   <style>
     body {{ font-family: system-ui, sans-serif; padding: 2rem; background: #0f172a; color: #e2e8f0; }}
     h1 {{ color: #38bdf8; }} h2 {{ color: #94a3b8; font-size: 1rem; font-weight: normal; margin-top: -1rem; }}
+    .pill {{ display:inline-block; background:#1e293b; color:#f59e0b; padding:.2rem .6rem; border-radius:1rem; font-size:.8rem; margin-top:.5rem; }}
     table {{ border-collapse: collapse; width: 100%; margin-top: 1.5rem; }}
     th {{ background: #1e293b; padding: .75rem 1rem; text-align: left; color: #94a3b8; font-size: .875rem; }}
     td {{ padding: .75rem 1rem; border-bottom: 1px solid #1e293b; font-size: .875rem; }}
@@ -83,11 +86,12 @@ async def dashboard():
 <body>
   <h1>MarketSense AI</h1>
   <h2>Human-in-the-Loop Approval Dashboard</h2>
+  <div class="pill">{pending_count} pending · {len(actions)} total in history</div>
   <table>
     <thead>
-      <tr><th>ID</th><th>SKU</th><th>Action</th><th>Price</th><th>Status</th><th>Created</th><th></th></tr>
+      <tr><th>ID</th><th>SKU</th><th>Action</th><th>Price</th><th>Status</th><th>Created</th><th>Reviewed</th><th></th></tr>
     </thead>
-    <tbody>{rows or '<tr><td colspan="7" style="text-align:center;color:#94a3b8">No actions yet — trigger a demo run to see results.</td></tr>'}</tbody>
+    <tbody>{rows or '<tr><td colspan="8" style="text-align:center;color:#94a3b8">No actions yet — trigger a demo run to see results.</td></tr>'}</tbody>
   </table>
 </body>
 </html>""")
@@ -118,12 +122,20 @@ async def action_detail(action_id: str):
           </button>
         </form>"""
 
-    draft_html = (action.draft_content or "").replace("\n", "<br>").replace("## ", "<strong>").replace("\n", "</strong><br>")
+    heading = "Review Pricing Action" if action.status == "pending" else "Pricing Action — Record"
+    review_info = ""
+    if action.status != "pending":
+        reviewed = action.reviewed_at.strftime('%Y-%m-%d %H:%M UTC') if action.reviewed_at else "—"
+        note = action.reviewer_note or "—"
+        review_info = (
+            f'<p><strong>Reviewed:</strong> {reviewed}</p>'
+            f'<p><strong>Reviewer note:</strong> {note}</p>'
+        )
 
     return HTMLResponse(f"""<!DOCTYPE html>
 <html>
 <head>
-  <title>Review Action — MarketSense AI</title>
+  <title>{heading} — MarketSense AI</title>
   <style>
     body {{ font-family: system-ui, sans-serif; padding: 2rem; max-width: 720px; margin: 0 auto;
            background: #0f172a; color: #e2e8f0; }}
@@ -137,13 +149,14 @@ async def action_detail(action_id: str):
 </head>
 <body>
   <p class="back"><a href="/">← All Actions</a></p>
-  <h1>Review Pricing Action</h1>
+  <h1>{heading}</h1>
   <div class="card">
     <p><strong>Action ID:</strong> <code>{action.id}</code></p>
     <p><strong>SKU:</strong> {action.sku} &nbsp;|&nbsp; <strong>Type:</strong> {action.action_type}</p>
     <p><strong>Proposed Price:</strong> PKR {action.action_payload.get('proposed_price', 0):,.0f}</p>
     <p><strong>Expected Margin:</strong> {action.action_payload.get('expected_margin', 0):.1f}%</p>
     <p><strong>Status:</strong> <span class="status">{action.status.upper()}</span></p>
+    {review_info}
     <hr style="border-color:#334155">
     <pre>{action.draft_content or '—'}</pre>
     <div style="margin-top:1.5rem">{buttons}</div>
