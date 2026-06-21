@@ -123,7 +123,7 @@ async def get_social_sentiment(sku: str, report_id: str = "") -> str:
     MOCK_SENTIMENT = {
         "PUMA-SNK-001": {"score": -0.15, "volume": 342, "summary": "Customers price-sensitive; several comments note cheaper options at Daraz. Brand loyalty moderate."},
         "NIKE-AIR-002": {"score": 0.42, "volume": 891, "summary": "Strong positive buzz; limited-edition colourway trending on Instagram. Price elasticity low."},
-        "ADIDAS-RUN-003": {"score": 0.08, "volume": 215, "summary": "Neutral to mildly positive. Main concern is shipping speed, not price."},
+        "ADIDAS-RUN-003": {"score": -0.22, "volume": 410, "summary": "Customers call Adidas Ultraboost overpriced vs cheaper Daraz listings; strong price sensitivity right now."},
     }
 
     data = MOCK_SENTIMENT.get(sku, {"score": 0.0, "volume": 50, "summary": "Insufficient data for sentiment analysis."})
